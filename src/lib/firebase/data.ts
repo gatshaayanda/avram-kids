@@ -52,3 +52,12 @@ export async function getBookingRequests(): Promise<BookingRequestRecord[]> {
 export async function updateBookingStatus(id: string, status: BookingRequestRecord["status"]) {
   await updateDoc(doc(db, "bookingRequests", id), { status });
 }
+
+export async function deleteBookingRequest(id: string) {
+  await deleteDoc(doc(db, "bookingRequests", id));
+}
+
+export async function clearBookingRequests() {
+  const snapshot = await getDocs(bookingCollection);
+  for (const item of snapshot.docs) await deleteDoc(item.ref);
+}
