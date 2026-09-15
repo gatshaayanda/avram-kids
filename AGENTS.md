@@ -5,6 +5,8 @@ Avram Kids is a mobile-first booking and operations application for children's e
 
 The core product goal is operational relief: customers should see real equipment, prices and specials, submit one complete request online, and leave the owner with an organized queue of qualified requests rather than another stream of repetitive WhatsApp conversations.
 
+Avram is intentionally growing beyond a simple enquiry form. The booking journey is the entry point for a structured customer relationship and rental-operation record. Future capabilities may include confirmed rental jobs, equipment allocation/return tracking, invoices, payment status, customer history, loyalty, referrals and appropriate customer follow-up automation. These capabilities must grow from the same underlying booking/customer/job data rather than become disconnected features.
+
 The owner must be able to run the public catalogue and homepage content without developer help: change equipment names/descriptions/sizes/prices, replace equipment images, hide/show items, add/remove equipment, publish/retire specials and sale messaging, and manage homepage images/videos. Customer-facing content must always come from the current managed content, not hard-coded duplicate data.
 
 ## Roles
@@ -48,18 +50,46 @@ Build the smallest real operating system that lets Avram run bookings without re
 
 5. **Operational booking lifecycle**
    - Requests: New → Contacted → Confirmed → Completed / Cancelled.
-   - Owner can review complete event briefs, contact qualified leads, and manage upcoming work.
+   - Owner can review complete event briefs, contact qualified requests, and manage upcoming work.
    - Add availability/conflict handling based on real equipment inventory before claiming a booking is confirmed.
    - Add confirmed-job/calendar views only when the underlying data model is stable.
+   - A confirmed booking should eventually be capable of becoming a real rental job record with the equipment/quantity actually committed, completion state, return state where applicable, and the financial/customer-history links needed downstream.
 
-6. **Automation and owner relief**
+6. **Customer relationship foundation**
+   - The booking process is the primary customer-data entry point. Do not make customers create accounts just to book.
+   - Capture the customer information that is genuinely useful for running the rental business, starting with name, phone/WhatsApp, optional email and event details already required by the booking workflow.
+   - When appropriate and consent/UX supports it, the booking flow may collect optional relationship fields such as birthday/month-day, preferred contact method, referral source/code or marketing/follow-up preference. Optional fields must never block a booking request.
+   - Normalize/reuse customer identity from reliable contact information where practical so repeat bookings can be associated with the same customer without forcing account creation.
+   - Preserve a historical snapshot on each booking/job so later catalogue price/name changes do not rewrite history.
+   - A future `customers`/customer-profile layer should be derived from booking history rather than replacing the booking record. The booking remains the source event; the customer profile is the relationship view across events.
+   - Keep customer data private and protected by the same authenticated Avram Operations model. Never expose customer history publicly.
+
+7. **Rental job and commercial operations**
+   - After the booking lifecycle is stable, support a controlled transition from confirmed booking to completed rental job.
+   - Link the job to the equipment reserved/supplied, quantity, agreed price/offer, event date/time and customer.
+   - Track operational completion and equipment return/availability where relevant to the actual business process.
+   - Future invoices should be generated from confirmed/completed rental data rather than manually retyping booking details.
+   - Future invoice records should support clear invoice identity, customer, line items, quantities, agreed prices, totals, issue/due dates, status and notes as appropriate.
+   - Payment tracking may record states such as unpaid, partially paid, paid, refunded/cancelled where the business requires them. Do not claim an online payment occurred unless a real payment integration confirms it.
+   - Accounting should remain lightweight business invoicing/receivables functionality for Avram, not a full accounting/ERP system. Do not build payroll, tax accounting or unrelated finance modules unless explicitly requested later.
+
+8. **Loyalty, referrals and customer growth**
+   - Loyalty and referral programmes should be built on completed/confirmed customer history, not arbitrary browser counters.
+   - A future loyalty layer may calculate legitimate repeat-booking milestones, credits, discounts or other owner-defined rewards.
+   - A future referral layer may record who referred a new customer, the qualifying booking, reward status and any owner-defined reward/credit.
+   - Rewards must be explicit managed business rules; never invent discounts, balances or rewards in the customer UI.
+   - Customer birthday/occasion messaging may be supported when the relevant date and contact permission/data exist. Do not send or claim to have sent WhatsApp, email or SMS without a real integration.
+   - Specials and loyalty/referral offers must remain distinguishable so historical pricing and invoices are auditable.
+
+9. **Automation and owner relief**
    - New qualified request notification to the owner.
    - Honest customer acknowledgement after a successful request submission.
    - Reminder/confirmation flows only when a real integration exists.
+   - Future follow-up automation may include upcoming-event reminders, post-rental follow-up, birthday messages, loyalty milestones and referral rewards when supported by real integrations and stored preferences.
    - Never fake WhatsApp, email, payment, calendar or notification delivery.
    - Automate repetitive routing/status work before adding AI features.
 
-7. **PWA and offline operation**
+10. **PWA and offline operation**
    - Avram Kids must be installable as a PWA from a supported browser.
    - Cache the application shell and core public routes so the site can open without a network after first visit.
    - Provide a truthful offline state and an offline fallback page.
@@ -69,14 +99,15 @@ Build the smallest real operating system that lets Avram run bookings without re
    - Register the service worker from the root layout, keep cache versioned, and provide install affordance where the browser supports it.
    - Do not cache private/admin responses in a way that exposes one user's private data to another user; browser-local Firestore persistence remains scoped to the authenticated browser profile.
 
-8. **Analytics and product monitoring**
+11. **Analytics and product monitoring**
    - Vercel Web Analytics must actually be mounted in the root Next.js layout, not merely installed as a dependency.
    - Vercel Speed Insights should remain wired where useful.
    - Start with page/visitor analytics; add custom funnel events only when they provide a clear product decision and the plan supports them.
 
-9. **Operational reporting**
-   - Useful views: incoming requests, upcoming confirmed jobs, catalogue/specials/media state, response/booking status and basic demand patterns.
-   - Do not build accounting, payroll, fleet management, routing or an ERP.
+12. **Operational reporting**
+   - Useful views: incoming requests, upcoming confirmed jobs, catalogue/specials/media state, response/booking status, completed work, basic customer history and basic demand patterns.
+   - Future reporting may include rental revenue, outstanding invoice balances, repeat customers, referral performance and loyalty activity once the underlying records are real.
+   - Do not build an ERP. Keep reporting tied to actual Avram operations.
 
 ## Current product state
 The user is testing the actual Avram Kids product as the final reviewer. The product itself must never be presented as a QA build, QA mode, demo, or test app.
@@ -88,7 +119,7 @@ The PWA foundation now includes a web app manifest, install icon, service worker
 Current customer-to-owner journey:
 Customer `/` → browse current equipment/prices/images → `/book` → submit one complete event request to Firestore → owner reviews it in `/admin` → owner contacts qualified requests → status moves through the booking lifecycle.
 
-The booking form collects enough information to prevent the owner from having to repeat basic qualification questions in WhatsApp: customer name, phone, optional email, event date, event start time, location, equipment, quantity, estimated guests, event type and optional notes.
+The booking form currently collects: customer name, phone/WhatsApp, optional email, event date, event start time, location, selected equipment, quantity, estimated guests, event type and optional notes. This is the foundation for the future customer relationship record; future optional relationship fields should be added deliberately to the booking process rather than creating a separate account-registration step.
 
 ## Public funnel
 The public site should clearly present:
@@ -108,6 +139,8 @@ Use the supplied Avram equipment/pricing as the initial source of truth. Custom 
 ## Booking
 `/book` is a structured lead-capture and booking-request workflow, not an instant-confirmation system. It writes booking requests through the shared Firestore data layer and returns the Firestore request reference after a successful remote/local Firestore write.
 
+The booking workflow is also the intended foundation for customer relationship structuring. The system should capture enough information at booking time to identify and serve repeat customers later, while keeping optional relationship fields optional and avoiding forced customer accounts.
+
 If Firestore has no local cache and a booking write cannot be queued, the customer must see a truthful error. When persistence is available and the write is queued offline, the UI must explicitly identify the request as saved on the device and pending synchronization rather than implying Avram has already received it.
 
 Customer-facing copy must not expose internal implementation language such as QA storage, Firebase-next, authentication-next, browser-only persistence, or development limitations. It must remain truthful: a request is not a confirmed booking until Avram checks availability and confirms it.
@@ -126,6 +159,8 @@ The admin system is a first-class product surface, not an afterthought. Build it
 - specials/sales management
 - homepage image/video management
 - later: availability and calendar operations
+- later: customer history and relationship context attached to booking/job records
+- later: rental completion/return and invoice/payment status attached to real confirmed/completed work
 
 The purpose is to let the owner focus on the business and respond to organized, qualified leads when she chooses, rather than manually collecting the same details from scattered messages.
 
@@ -146,12 +181,14 @@ Firebase configuration is environment-driven and belongs to the Avram Kids Fireb
 
 Repository-managed Firebase configuration includes `firebase.json`, `firestore.rules`, `storage.rules`, the client Firebase service module, and the shared data layer. The Firebase Console must still have the corresponding rules deployed before production writes are expected to work.
 
-Firestore collections are:
+Current Firestore collections are:
 - `equipment`: public active catalogue, admin-managed
 - `specials`: public active promotions, admin-managed
 - `homeMedia`: public published homepage media metadata, admin-managed
 - `bookingRequests`: public-create/private-read booking intake
 - `admins`: provisioned role records; clients cannot write themselves into this collection
+
+Future customer/rental/invoice collections must be introduced only after the existing booking model and operational lifecycle are stable. Prefer clear relationships and historical snapshots over duplicating the same mutable customer/equipment/pricing data in multiple places.
 
 Security requirements:
 - public customers may create only the minimum booking-request fields;
@@ -159,6 +196,7 @@ Security requirements:
 - customers cannot write equipment, specials, statuses, homeMedia or admin records;
 - admin/staff reads and writes require Firebase Authentication plus an `admins/{uid}` role record of `owner` or `staff`;
 - equipment and homepage media files are publicly readable but uploads/deletes require an authorized admin and are limited to appropriate file types and reasonable size limits;
+- customer relationship, rental, invoice and payment records must be private to authorized Avram Operations users;
 - test allowed and denied access paths before calling the data layer production-ready.
 
 The first owner account must be created in Firebase Authentication and its UID must be provisioned as an `admins/{uid}` document with `role: "owner"` outside the client application. Never add a self-service admin-signup path.
@@ -167,7 +205,13 @@ The first owner account must be created in Firebase Authentication and its UID m
 The project depends on `@vercel/analytics` and the root `src/app/layout.tsx` renders the official Next.js `<Analytics />` component. Vercel Web Analytics still requires Analytics to be enabled in the Vercel project and a deployed/visited production build before data appears. Do not claim live analytics until that is verified.
 
 ## Scope discipline
-Do not add accounting, payroll, fleet management, routing, AI chatbot, customer accounts, fake payments, fake Google login, or unnecessary dependencies. Preserve useful Next.js, Firebase, error-boundary, TypeScript, PWA, Analytics and Speed Insights foundations where genuinely useful.
+Do not add payroll, fleet management, routing, AI chatbot, customer accounts, fake payments, fake Google login, or unnecessary dependencies.
+
+Avram may now grow into lightweight rental-business commercial operations including customer history, confirmed/completed rental jobs, invoices, payment status, loyalty, referrals and real notification/follow-up integrations. These are not permission to build a generic ERP or full accounting package. Keep each addition directly tied to Avram's actual rental workflow.
+
+Do not introduce customer account registration merely to support loyalty/referrals. The booking process should remain the natural entry point for customer relationship data unless a later product decision explicitly requires accounts.
+
+Use proven patterns from other projects, including Translend where technically relevant, as reference material only. Do not copy unrelated domain terminology, Firebase projects, credentials or business assumptions. Do not modify Translend, AdminHub, PurePress or any other repository while working here.
 
 No Translend terminology may remain in active Avram UI, metadata, routes, navigation, or user-facing error messages.
 
@@ -178,6 +222,8 @@ Before declaring a checkpoint, run and pass:
 - `npm run build`
 
 Also verify the deployed PWA on a supported browser: manifest loads, service worker registers, core routes open offline after a first online visit, Firestore local persistence works, and an offline booking request is clearly marked as pending rather than falsely confirmed.
+
+For future customer/rental/invoice/loyalty work, verify data relationships and security rules before adding polished UI. A feature is not complete because its screen exists; its underlying records, transitions, permissions and historical behavior must be real.
 
 Do not suppress errors. Review the diff and git status before checkpointing. A deployment being READY is useful evidence, but it does not replace application QA by the product owner.
 
@@ -199,6 +245,7 @@ Current state is **partially verified, not production-ready**:
 - Mobile equipment CRUD: failing / needs diagnosis.
 - Equipment image upload: failing / needs diagnosis and implementation repair.
 - PWA/offline: not yet verified because deployed current build is pending.
+- Customer relationship/rental/invoice/loyalty expansion: architecture direction defined, implementation not started.
 - Other operational features remain subject to the completion path above and must not be marked complete merely because their code paths exist.
 
 ## Recovery reporting
