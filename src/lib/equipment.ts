@@ -4,6 +4,7 @@ export type EquipmentItem = {
   detail: string;
   size: string;
   price: string;
+  imageUrl?: string;
   active: boolean;
 };
 
