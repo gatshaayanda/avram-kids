@@ -1,17 +1,44 @@
-# Translend TMS · Truck Division
+# Avram Kids
 
-Independent Translend transport management application.
+Avram Kids is a mobile-first booking website and operations foundation for children's event equipment hire.
 
-This repository is derived from the verified Translend foundation/shell checkpoint formerly developed in `adminhub-global`. It is intentionally independent of AdminHub Global at runtime.
+## Public experience
 
-## Current phase
+The first release focuses on a simple customer journey:
 
-Foundation and application shell only. Business modules are intentionally out of scope until the independent foundation is verified.
+Customer → Offering → Booking Request → Availability → Confirmation → Event → Completion
+
+Initial offering categories:
+- Jumping Castles
+- Water Slides
+- Obstacle Courses
+- Interactive Games
+
+The public site is available at `/` and the booking request form at `/book`.
+
+## Booking behaviour
+
+Customers do not need an account to request a booking. The current form provides an honest client-side confirmation state and direct WhatsApp/phone fallback. It does not pretend to persist a booking or confirm availability until the real backend workflow is implemented.
 
 ## Stack
 
-Next.js App Router, React, TypeScript, Tailwind CSS, Firebase Authentication/Firestore/Storage, and Vercel.
+Next.js App Router, React, TypeScript, Tailwind CSS, Firebase foundation, and Vercel.
 
-## Authentication
+## Development
 
-Firebase Authentication with Google Sign-In. Server-side Firebase ID-token verification is the security boundary.
+Run:
+
+```bash
+npm install
+npm run dev
+```
+
+Quality gates:
+
+```bash
+npx tsc --noEmit
+npm run lint
+npm run build
+```
+
+Never commit secrets or `.env.local`.
