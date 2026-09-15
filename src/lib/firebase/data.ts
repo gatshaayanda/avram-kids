@@ -2,6 +2,16 @@ import { addDoc, collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "
 import { db } from "@/lib/firebase/client";
 import type { EquipmentItem } from "@/lib/equipment";
 
+export type SpecialRecord = {
+  id: string;
+  title: string;
+  detail: string;
+  active: boolean;
+  offer?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
 export type BookingRequestRecord = {
   id: string;
   createdAt: string;
@@ -20,6 +30,7 @@ export type BookingRequestRecord = {
 };
 
 const equipmentCollection = collection(db, "equipment");
+const specialCollection = collection(db, "specials");
 const bookingCollection = collection(db, "bookingRequests");
 
 export async function getEquipment(): Promise<EquipmentItem[]> {
@@ -39,6 +50,19 @@ export async function seedEquipmentRecords(items: EquipmentItem[]) {
   for (const item of items) await saveEquipmentRecord(item);
 }
 
+export async function getSpecials(): Promise<SpecialRecord[]> {
+  const snapshot = await getDocs(specialCollection);
+  return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<SpecialRecord, "id">) }));
+}
+
+export async function saveSpecialRecord(item: SpecialRecord) {
+  await setDoc(doc(db, "specials", item.id), item);
+}
+
+export async function deleteSpecialRecord(id: string) {
+  await deleteDoc(doc(db, "specials", id));
+}
+
 export async function createBookingRequest(data: Omit<BookingRequestRecord, "id">) {
   const result = await addDoc(bookingCollection, data);
   return result.id;
@@ -51,10 +75,6 @@ export async function getBookingRequests(): Promise<BookingRequestRecord[]> {
 
 export async function updateBookingStatus(id: string, status: BookingRequestRecord["status"]) {
   await updateDoc(doc(db, "bookingRequests", id), { status });
-}
-
-export async function deleteBookingRequest(id: string) {
-  await deleteDoc(doc(db, "bookingRequests", id));
 }
 
 export async function clearBookingRequests() {
