@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getEquipment } from "@/lib/firebase/data";
 import { readEquipment, type EquipmentItem } from "@/lib/equipment";
 
 const categories = [
@@ -14,7 +15,16 @@ const categories = [
 export default function Home() {
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
 
-  useEffect(() => setEquipment(readEquipment().filter((item) => item.active)), []);
+  useEffect(() => {
+    let cancelled = false;
+    void getEquipment().then((items) => {
+      if (!cancelled && items.length) setEquipment(items.filter((item) => item.active));
+      else if (!cancelled) setEquipment(readEquipment().filter((item) => item.active));
+    }).catch(() => {
+      if (!cancelled) setEquipment(readEquipment().filter((item) => item.active));
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <main className="site">
