@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { getEquipment, createBookingRequest } from "@/lib/firebase/data";
 import { readEquipment, type EquipmentItem } from "@/lib/equipment";
 
 export default function BookForm() {
@@ -12,22 +13,42 @@ export default function BookForm() {
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => setEquipment(readEquipment().filter((item) => item.active)), []);
+  useEffect(() => {
+    let cancelled = false;
+    void getEquipment().then((items) => {
+      if (!cancelled && items.length) setEquipment(items.filter((item) => item.active));
+      else if (!cancelled) setEquipment(readEquipment().filter((item) => item.active));
+    }).catch(() => {
+      if (!cancelled) setEquipment(readEquipment().filter((item) => item.active));
+    });
+    return () => { cancelled = true; };
+  }, []);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setBusy(true);
+    setError("");
     const form = new FormData(event.currentTarget);
     const request = {
-      id: crypto.randomUUID(), createdAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       name: String(form.get("name") ?? ""), phone: String(form.get("phone") ?? ""), email: String(form.get("email") ?? ""),
       date: String(form.get("date") ?? ""), startTime: String(form.get("startTime") ?? ""), location: String(form.get("location") ?? ""), equipment: String(form.get("equipment") ?? ""),
-      quantity: Number(form.get("quantity") ?? 1), guests: Number(form.get("guests") ?? 0), eventType: String(form.get("eventType") ?? ""), notes: String(form.get("notes") ?? ""), status: "New",
+      quantity: Number(form.get("quantity") ?? 1), guests: Number(form.get("guests") ?? 0), eventType: String(form.get("eventType") ?? ""), notes: String(form.get("notes") ?? ""), status: "New" as const,
     };
-    const existing = JSON.parse(localStorage.getItem("avram_booking_requests_v1") ?? "[]");
-    localStorage.setItem("avram_booking_requests_v1", JSON.stringify([request, ...existing]));
-    setReference(request.id.slice(0, 8).toUpperCase());
-    setSubmitted(true);
+
+    try {
+      const id = await createBookingRequest(request);
+      setReference(id.slice(0, 8).toUpperCase());
+      setSubmitted(true);
+      event.currentTarget.reset();
+    } catch {
+      setError("We could not record your request right now. Please try again in a moment. If the problem continues, contact Avram directly.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -48,8 +69,8 @@ export default function BookForm() {
             <div className="field"><label htmlFor="quantity">Quantity</label><input id="quantity" name="quantity" required type="number" min="1" defaultValue="1" /></div>
             <div className="field"><label htmlFor="eventType">Event type</label><select id="eventType" name="eventType" required defaultValue=""><option value="" disabled>Select one</option><option>Birthday</option><option>School / daycare</option><option>Family day</option><option>Church / community event</option><option>Corporate event</option><option>Other</option></select></div>
             <div className="field fieldFull"><label htmlFor="notes">Anything else we should know? <span style={{fontWeight:400}}>(optional)</span></label><textarea id="notes" name="notes" placeholder="Guest needs, package ideas or other useful details" /></div>
-            <div className="field fieldFull"><button className="button buttonPrimary" type="submit">Submit booking request</button></div>
-          </div><p style={{color:"var(--muted)",fontSize:".84rem",lineHeight:1.6,marginBottom:0}}>Submitting creates a request for Avram to review. A booking is only confirmed after availability has been checked and Avram confirms it.</p></form>}
+            <div className="field fieldFull"><button className="button buttonPrimary" type="submit" disabled={busy}>{busy ? "Sending request…" : "Submit booking request"}</button></div>
+          </div>{error && <p role="alert" style={{color:"#b42318",lineHeight:1.6}}>{error}</p>}<p style={{color:"var(--muted)",fontSize:".84rem",lineHeight:1.6,marginBottom:0}}>Submitting creates a request for Avram to review. A booking is only confirmed after availability has been checked and Avram confirms it.</p></form>}
         </div>
       </div>
     </main>
