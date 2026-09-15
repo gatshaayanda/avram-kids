@@ -181,6 +181,26 @@ Also verify the deployed PWA on a supported browser: manifest loads, service wor
 
 Do not suppress errors. Review the diff and git status before checkpointing. A deployment being READY is useful evidence, but it does not replace application QA by the product owner.
 
+## Current owner QA findings — 2026-09-15
+These are observed product-review results from the product owner and must be treated as active implementation evidence, not assumptions:
+
+- **Admin authentication:** Firebase Email/Password authentication is working with the provisioned Avram Operations owner account. The required Firestore `admins/{uid}` owner record was created successfully and the Operations gate now accepts the account.
+- **Desktop admin CRUD:** On the laptop/desktop browser, the owner can currently perform equipment CRUD operations in Operations. This is working and must not be regressed.
+- **Mobile admin CRUD:** On the phone browser, the owner can sign in but equipment CRUD does **not** currently work. This is a confirmed cross-device defect. Do not mark admin CRUD fully verified until the mobile path is diagnosed and re-tested.
+- **Equipment image upload:** Image upload from Operations is currently **not working**. The UI/data architecture contains Firebase Storage upload support, but end-to-end upload success has not been verified. This is a confirmed blocker for the catalogue image-management requirement.
+- **Existing implementation reference:** The owner has identified working UploadThing/media-upload implementation patterns in prior projects, including Translend. Before redesigning the upload architecture, inspect those existing implementations and reuse the proven pattern where compatible with Avram's Firebase Storage/data model. Do not modify those other repositories.
+- **PWA:** PWA/offline QA has **not yet been performed** because the corrected/latest version still needs a successful Vercel deployment before the owner can verify it on a deployed browser. Do not claim PWA production readiness yet.
+- **Vercel deployment:** The latest GitHub changes have been blocked by the current Vercel deployment rate limit. A GitHub push/commit is not equivalent to a Vercel deployment. Do not create dummy commits solely to trigger deployments. Resume deployed-browser QA once a genuine current Avram build is available.
+
+### QA interpretation
+Current state is **partially verified, not production-ready**:
+- Authentication/access: verified.
+- Desktop equipment CRUD: verified.
+- Mobile equipment CRUD: failing / needs diagnosis.
+- Equipment image upload: failing / needs diagnosis and implementation repair.
+- PWA/offline: not yet verified because deployed current build is pending.
+- Other operational features remain subject to the completion path above and must not be marked complete merely because their code paths exist.
+
 ## Recovery reporting
 When continuing work, report:
 - current branch
