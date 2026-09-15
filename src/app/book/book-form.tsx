@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-
-const equipment = [
-  ["Castle with Slide", "3 × 7 m", "P850"], ["Curved Water Slide with Pool", "3 × 7 m", "P850"], ["Tropical Castle with Slide", "3 × 5.5 m", "P700"], ["Tropical Slip 'n Slide with Pool", "3 × 6 m", "P600"], ["Square Tropical Jumping Castle", "4.5 × 4.5 m", "P600"], ["Tall Dual-Lane Water Slide", "3 × 6 × 2.5 m", "P1,000"], ["Long Dual-Lane Slip 'n Slide", "2 × 8 m", "P650"], ["Tropical Castle & Slide Combo", "3 × 6 m", "P600"], ["Classic Open Jumping Castle", "3 × 3 m", "P500"], ["Tropical Castle Combo", "3 × 5.5 m", "P700"], ["Dual-Lane Slip 'n Slide", "3.3 × 8 m", "P900"],
-];
+import { readEquipment, type EquipmentItem } from "@/lib/equipment";
 
 export default function BookForm() {
   const searchParams = useSearchParams();
   const preselected = searchParams.get("equipment") ?? "";
+  const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState("");
+
+  useEffect(() => setEquipment(readEquipment().filter((item) => item.active)), []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,7 +34,7 @@ export default function BookForm() {
     <main className="bookPage">
       <nav className="nav"><div className="container navInner"><Link href="/" className="logo"><span className="logoMark" aria-hidden="true" />Avram Kids</Link><Link href="/" className="button buttonLight">Back to site</Link></div></nav>
       <div className="formWrap">
-        <div className="sectionHead"><span className="kicker">Online booking request</span><h1 style={{fontSize:"clamp(2.6rem,6vw,4.5rem)"}}>Tell us about your event.</h1><p>Give Avram the details once. Your request is organized for review, so you do not need to repeat the same information in WhatsApp messages.</p></div>
+        <div className="sectionHead"><span className="kicker">Online booking request</span><h1 style={{fontSize:"clamp(2.6rem,6vw,4.5rem)"}}>Tell us about your event.</h1><p>Give Avram the details once. Your request is organized for review, so you do not need to repeat the same information in WhatsApp.</p></div>
         <div className="formCard">
           {submitted ? <div className="confirm"><div className="confirmIcon">🎉</div><h2>Request received</h2><p>Your booking request has been recorded.</p><p><strong>Request #{reference}</strong></p><p>Avram Kids can now review your event details and contact you when your request is ready for an availability check or confirmation. You do not need to send the same request again by WhatsApp.</p><div className="actions" style={{justifyContent:"center"}}><Link className="button buttonPrimary" href="/">Return to Avram Kids</Link></div></div> : <form onSubmit={handleSubmit}><div className="formGrid">
             <div className="field"><label htmlFor="name">Your name</label><input id="name" name="name" required autoComplete="name" /></div>
@@ -44,7 +44,7 @@ export default function BookForm() {
             <div className="field"><label htmlFor="startTime">Event start time</label><input id="startTime" name="startTime" required type="time" /></div>
             <div className="field"><label htmlFor="guests">Estimated guests</label><input id="guests" name="guests" required type="number" min="1" placeholder="e.g. 30" /></div>
             <div className="field fieldFull"><label htmlFor="location">Event location</label><input id="location" name="location" required placeholder="Area, venue or address" /></div>
-            <div className="field fieldFull"><label htmlFor="equipment">Equipment</label><select id="equipment" name="equipment" required defaultValue={preselected}><option value="" disabled>Select equipment</option>{equipment.map(([name, size, price]) => <option key={name} value={name}>{name} — {size} — {price}</option>)}</select></div>
+            <div className="field fieldFull"><label htmlFor="equipment">Equipment</label><select id="equipment" name="equipment" required defaultValue={preselected}><option value="" disabled>Select equipment</option>{equipment.map((item) => <option key={item.id} value={item.name}>{item.name} — {item.size} — {item.price}</option>)}</select></div>
             <div className="field"><label htmlFor="quantity">Quantity</label><input id="quantity" name="quantity" required type="number" min="1" defaultValue="1" /></div>
             <div className="field"><label htmlFor="eventType">Event type</label><select id="eventType" name="eventType" required defaultValue=""><option value="" disabled>Select one</option><option>Birthday</option><option>School / daycare</option><option>Family day</option><option>Church / community event</option><option>Corporate event</option><option>Other</option></select></div>
             <div className="field fieldFull"><label htmlFor="notes">Anything else we should know? <span style={{fontWeight:400}}>(optional)</span></label><textarea id="notes" name="notes" placeholder="Guest needs, package ideas or other useful details" /></div>
