@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import PwaRegister from "@/app/pwa-register";
 import "./globals.css";
+import "./pwa.css";
 
 export const metadata: Metadata = {
   title: "Avram Kids | Fun for every celebration",
