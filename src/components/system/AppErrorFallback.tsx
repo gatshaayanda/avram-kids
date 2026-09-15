@@ -1,44 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
-
-function errorDetails(error: Error & { digest?: string }, reset: () => void) {
-  const digest = error.digest ? `\nDigest: ${error.digest}` : "";
-  return `Translend application error\n${error.message || "Unknown application error"}${digest}\nTime: ${new Date().toISOString()}`;
-}
+import { useState } from "react";
 
 export default function AppErrorFallback({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const [copied, setCopied] = useState(false);
-  const details = useMemo(() => errorDetails(error, reset), [error, reset]);
+  const details = `${error.message || "Unknown application error"}${error.digest ? `\nDigest: ${error.digest}` : ""}\nTime: ${new Date().toISOString()}`;
 
-  const copyDetails = async () => {
+  async function copyDetails() {
     try {
       await navigator.clipboard.writeText(details);
       setCopied(true);
     } catch {
       setCopied(false);
     }
-  };
+  }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-      <section className="panel w-full max-w-2xl">
-        <span className="badge orange">APPLICATION ISSUE</span>
-        <h1 className="page-title mt-4">Something did not complete</h1>
-        <p className="section-sub mt-2">
-          Translend could not finish this screen or action. Your business data has not been intentionally replaced with demo data.
-        </p>
-        <div className="notice mt-5" style={{ borderColor: "#F3C3C3", background: "var(--red-100)", color: "#902323" }}>
-          <strong>What to do:</strong> try again once. If it still fails, send the technical details to your Translend developer or workspace administrator so they can investigate the responsible feature.
-        </div>
-        <details className="mt-5">
-          <summary className="cursor-pointer font-semibold">Show technical details</summary>
-          <pre className="mt-3 overflow-auto rounded-lg border bg-white p-4 text-xs whitespace-pre-wrap">{details}</pre>
-        </details>
-        <div className="form-actions mt-6">
-          <button className="btn-primary" onClick={reset}>Try again</button>
-          <button className="btn-secondary" onClick={copyDetails}>{copied ? "Copied" : "Copy report details"}</button>
-        </div>
+    <main style={{minHeight:"100vh",display:"grid",placeItems:"center",padding:24,background:"#fff8e7",fontFamily:"Arial, sans-serif",color:"#243047"}}>
+      <section style={{width:"min(640px,100%)",background:"white",border:"1px solid #eadfce",borderRadius:24,padding:32}}>
+        <strong style={{color:"#e95f3f",fontSize:13,letterSpacing:1}}>AVRAM KIDS</strong>
+        <h1>Something did not complete</h1>
+        <p>We could not finish this screen. Please try again. If the issue continues, the technical details below can help us investigate it.</p>
+        <details><summary>Show technical details</summary><pre style={{whiteSpace:"pre-wrap",overflow:"auto",fontSize:12,background:"#f7f4ee",padding:16,borderRadius:12}}>{details}</pre></details>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:22}}><button onClick={reset} style={{border:0,borderRadius:999,padding:"12px 18px",background:"#e95f3f",color:"white",fontWeight:800}}>Try again</button><button onClick={copyDetails} style={{border:"1px solid #eadfce",borderRadius:999,padding:"12px 18px",background:"white",fontWeight:800}}>{copied ? "Copied" : "Copy details"}</button></div>
       </section>
     </main>
   );
