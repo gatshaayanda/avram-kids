@@ -1,17 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isSelf(uid) { return isSignedIn() && request.auth.uid == uid; }
-
-    // Foundation only. Organization/business collections are intentionally denied
-    // until their data contracts and authorization rules are implemented.
-    match /users/{userId} {
-      allow read, write: if isSelf(userId);
+    function signedIn() {
+      return request.auth != null;
     }
 
-    match /organizations/{orgId} {
-      allow read, write: if false;
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function validBookingRequest() {
+      return request.resource.data.keys().hasOnly([
+        'createdAt', 'name', 'phone', 'email', 'date', 'startTime',
+        'location', 'equipment', 'quantity', 'guests', 'eventType', 'notes',
+        'status'
+      ])
+      && request.resource.data.name is string
+      && request.resource.data.phone is string
+      && request.resource.data.date is string
+      && request.resource.data.location is string
+      && request.resource.data.equipment is string
+      && request.resource.data.quantity is int
+      && request.resource.data.quantity > 0
+      && request.resource.data.eventType is string
+      && request.resource.data.status == 'New';
+    }
+
+    // Public catalogue. Customers can read published content, but only an
+    // authenticated Avram admin can create, edit or remove it.
+    match /equipment/{equipmentId} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /specials/{specialId} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Public booking intake. Customers can create a new request with only the
+    // allowed lead fields. Reading and changing requests is private.
+    match /bookingRequests/{requestId} {
+      allow create: if validBookingRequest();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Role documents are provisioned out-of-band. A client may not grant
+    // itself admin access.
+    match /admins/{userId} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow write: if false;
     }
 
     match /{document=**} {
