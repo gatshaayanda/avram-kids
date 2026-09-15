@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Translend TMS · Truck Division",
-  description: "Independent transport management application for Translend TMS.",
+  title: "Avram Kids | Fun for every celebration",
+  description: "Book jumping castles, water slides, obstacle courses and interactive games for your next event.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
