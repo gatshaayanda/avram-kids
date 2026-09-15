@@ -83,7 +83,7 @@ The user is testing the actual Avram Kids product as the final reviewer. The pro
 
 The `/admin` workspace is the real Avram Kids Operations surface. It has a Firebase Authentication access gate, shared Firestore data functions, and Firebase Storage image-upload support in code. Browser-local storage remains only as a temporary fallback/cache and must not be presented as the shared production source of truth.
 
-The PWA foundation now includes a web app manifest, install icon, service worker, offline fallback, install affordance/offline status UI, and persistent Firestore local caching/queued writes. This must be verified in a deployed browser before calling offline operation production-ready.
+The PWA foundation now includes a web app manifest, install icon, service worker, offline fallback, install affordance/offline status UI, and persistent Firestore local caching/queued writes. The manifest icon purpose typing has been corrected on `avram-v1`; this must be verified in a deployed browser before calling offline operation production-ready.
 
 Current customer-to-owner journey:
 Customer `/` → browse current equipment/prices/images → `/book` → submit one complete event request to Firestore → owner reviews it in `/admin` → owner contacts qualified requests → status moves through the booking lifecycle.
