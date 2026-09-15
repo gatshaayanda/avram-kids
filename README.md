@@ -42,3 +42,7 @@ npm run build
 ```
 
 Never commit secrets or `.env.local`.
+
+## Deployment checkpoint
+
+The PWA manifest build fix is present on `avram-pwa-implementation`; this checkpoint commit is intended to retrigger the connected Vercel Git deployment from the current branch head.
