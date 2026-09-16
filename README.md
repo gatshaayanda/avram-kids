@@ -1,48 +1,30 @@
 # Avram Kids
 
-Avram Kids is a mobile-first booking website and operations foundation for children's event equipment hire.
+Mobile-first booking and operations application for children's event equipment hire in Gaborone, Botswana.
 
-## Public experience
+## Product flow
+Customer → managed offering → complete booking request → Avram Operations queue → availability review → confirmation → event.
 
-The first release focuses on a simple customer journey:
+Customers do not need an account. Booking requests are written to Firebase Firestore `bookingRequests`. Submission is a request, not an instant booking confirmation.
 
-Customer → Offering → Booking Request → Availability → Confirmation → Event → Completion
+## Operations
+`/admin` is the protected owner/staff workspace for booking requests and the live equipment catalogue. The catalogue can be added to, edited, hidden, restored from the seeded baseline, and have customer-facing images replaced.
 
-Initial offering categories:
-- Jumping Castles
-- Water Slides
-- Obstacle Courses
-- Interactive Games
+`/admin/content` is the protected Firebase-backed content workspace for specials and homepage images/videos. Firebase Storage holds media files; Firestore holds content metadata, publication state and ordering.
 
-The public site is available at `/` and the booking request form at `/book`.
+## Firebase
+`.firebaserc` targets the `avram-kids` Firebase project. Firestore and Storage rules in this repository must be deployed to that project before production writes are expected to work. Admin access requires Firebase Authentication plus an `admins/{uid}` role of `owner` or `staff`.
 
-## Booking behaviour
-
-Customers do not need an account to request a booking. The current form provides an honest client-side confirmation state and direct WhatsApp/phone fallback. It does not pretend to persist a booking or confirm availability until the real backend workflow is implemented.
-
-## Stack
-
-Next.js App Router, React, TypeScript, Tailwind CSS, Firebase foundation, and Vercel.
+## PWA
+Includes manifest, service worker, offline fallback and persistent Firestore local caching/queued writes. Offline booking must be shown as pending synchronization, never as already received.
 
 ## Development
-
-Run:
-
 ```bash
 npm install
 npm run dev
-```
-
-Quality gates:
-
-```bash
 npx tsc --noEmit
 npm run lint
 npm run build
 ```
 
 Never commit secrets or `.env.local`.
-
-## Deployment checkpoint
-
-The PWA manifest build fix is present on `avram-pwa-implementation`; this checkpoint commit is intended to retrigger the connected Vercel Git deployment from the current branch head.
