@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { auth, storage } from "@/lib/firebase/client";
@@ -9,136 +10,28 @@ import AdminGate from "@/app/admin/admin-gate";
 const MAX_HOME_MEDIA_BYTES = 25 * 1024 * 1024;
 
 export default function ContentAdminPage() {
-  const [specials, setSpecials] = useState<SpecialRecord[]>([]);
-  const [media, setMedia] = useState<HomeMediaRecord[]>([]);
-  const [special, setSpecial] = useState<SpecialRecord | null>(null);
-  const [mediaDraft, setMediaDraft] = useState<HomeMediaRecord | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [notice, setNotice] = useState("");
-
-  async function load() {
-    try {
-      setSpecials(await getSpecials());
-      setMedia(await getHomeMedia());
-    } catch {
-      setNotice("Content could not be loaded from Firebase.");
-    }
-  }
-
+  const [specials, setSpecials] = useState<SpecialRecord[]>([]); const [media, setMedia] = useState<HomeMediaRecord[]>([]); const [special, setSpecial] = useState<SpecialRecord | null>(null); const [mediaDraft, setMediaDraft] = useState<HomeMediaRecord | null>(null); const [file, setFile] = useState<File | null>(null); const [notice, setNotice] = useState("");
+  async function load() { try { setSpecials(await getSpecials()); setMedia(await getHomeMedia()); } catch { setNotice("Content could not be loaded from Firebase."); } }
   useEffect(() => { void load(); }, []);
-
-  async function saveSpecial() {
-    if (!special?.title.trim()) return;
-    try {
-      await saveSpecialRecord(special);
-      setSpecials((items) => items.some((item) => item.id === special.id) ? items.map((item) => item.id === special.id ? special : item) : [...items, special]);
-      setSpecial(null);
-      setNotice("Special saved to Firebase.");
-    } catch {
-      setNotice("Special could not be saved. Check Firebase access.");
-    }
-  }
-
-  async function removeSpecial(id: string) {
-    if (!window.confirm("Delete this special?")) return;
-    try {
-      await deleteSpecialRecord(id);
-      setSpecials((items) => items.filter((item) => item.id !== id));
-      setNotice("Special deleted.");
-    } catch {
-      setNotice("Special could not be deleted.");
-    }
-  }
-
-  async function toggleSpecial(item: SpecialRecord) {
-    try {
-      const next = { ...item, active: !item.active };
-      await saveSpecialRecord(next);
-      setSpecials((items) => items.map((entry) => entry.id === item.id ? next : entry));
-      setNotice(next.active ? "Special published to the public site." : "Special hidden from the public site.");
-    } catch {
-      setNotice("Special visibility could not be changed.");
-    }
-  }
-
+  async function saveSpecial() { if (!special?.title.trim()) return; try { await saveSpecialRecord(special); setSpecials((items) => items.some((item) => item.id === special.id) ? items.map((item) => item.id === special.id ? special : item) : [...items, special]); setSpecial(null); setNotice("Special saved to Firebase."); } catch { setNotice("Special could not be saved. Check Firebase access."); } }
+  async function removeSpecial(id: string) { if (!window.confirm("Delete this special?")) return; try { await deleteSpecialRecord(id); setSpecials((items) => items.filter((item) => item.id !== id)); setNotice("Special deleted."); } catch { setNotice("Special could not be deleted."); } }
+  async function toggleSpecial(item: SpecialRecord) { try { const next = { ...item, active: !item.active }; await saveSpecialRecord(next); setSpecials((items) => items.map((entry) => entry.id === item.id ? next : entry)); setNotice(next.active ? "Special published to the public site." : "Special hidden from the public site."); } catch { setNotice("Special visibility could not be changed."); } }
   async function saveMedia() {
     if (!mediaDraft?.title.trim() || (!mediaDraft.publicUrl && !file)) return;
     let next = mediaDraft;
-
     if (file) {
-      if (!auth.currentUser) {
-        setNotice("Please sign in again before uploading media.");
-        return;
-      }
-      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-        setNotice("Choose an image or video file.");
-        return;
-      }
-      if (file.size > MAX_HOME_MEDIA_BYTES) {
-        setNotice("That media file is larger than the 25 MB homepage limit.");
-        return;
-      }
-      try {
-        const safe = file.name.toLowerCase().replace(/[^a-z0-9.-]+/g, "-");
-        const path = `homepage-media/${next.id}/${Date.now()}-${safe}`;
-        const result = await uploadBytes(ref(storage, path), file, { contentType: file.type });
-        next = { ...next, type: file.type.startsWith("video/") ? "video" : "image", storagePath: path, publicUrl: await getDownloadURL(result.ref), updatedAt: new Date().toISOString() };
-      } catch {
-        setNotice("Media upload failed. If the file is valid, publish the current Firebase Storage rules before retrying.");
-        return;
-      }
+      if (!auth.currentUser) { setNotice("Please sign in again before uploading media."); return; }
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) { setNotice("Choose an image or video file."); return; }
+      if (file.size > MAX_HOME_MEDIA_BYTES) { setNotice("That media file is larger than the 25 MB homepage limit."); return; }
+      try { const safe = file.name.toLowerCase().replace(/[^a-z0-9.-]+/g, "-"); const path = `homepage-media/${next.id}/${Date.now()}-${safe}`; const result = await uploadBytes(ref(storage, path), file, { contentType: file.type }); next = { ...next, type: file.type.startsWith("video/") ? "video" : "image", storagePath: path, publicUrl: await getDownloadURL(result.ref), updatedAt: new Date().toISOString() }; } catch { setNotice("Media upload failed. Publish the current Firebase Storage rules before retrying."); return; }
     }
-
-    try {
-      await saveHomeMediaRecord(next);
-      setMedia((items) => items.some((item) => item.id === next.id) ? items.map((item) => item.id === next.id ? next : item).sort((a, b) => a.order - b.order) : [...items, next].sort((a, b) => a.order - b.order));
-      setMediaDraft(null);
-      setFile(null);
-      setNotice("Homepage media saved and available to the public site.");
-    } catch {
-      setNotice("Media uploaded but its Firebase record could not be saved. Check Firestore access.");
-    }
+    try { await saveHomeMediaRecord(next); setMedia((items) => items.some((item) => item.id === next.id) ? items.map((item) => item.id === next.id ? next : item).sort((a, b) => a.order - b.order) : [...items, next].sort((a, b) => a.order - b.order)); setMediaDraft(null); setFile(null); setNotice("Homepage media saved and available to the public site."); } catch { setNotice("Media uploaded but its Firebase record could not be saved. Check Firestore access."); }
   }
+  async function toggleMedia(item: HomeMediaRecord) { try { const next = { ...item, active: !item.active, updatedAt: new Date().toISOString() }; await saveHomeMediaRecord(next); setMedia((items) => items.map((entry) => entry.id === item.id ? next : item)); setNotice(next.active ? "Homepage media published." : "Homepage media hidden."); } catch { setNotice("Homepage media visibility could not be changed."); } }
+  async function removeMedia(item: HomeMediaRecord) { if (!window.confirm("Remove this homepage media?")) return; try { if (item.storagePath) { try { await deleteObject(ref(storage, item.storagePath)); } catch {} } await deleteHomeMediaRecord(item.id); setMedia((items) => items.filter((entry) => entry.id !== item.id)); setNotice("Homepage media removed."); } catch { setNotice("Homepage media could not be removed."); } }
 
-  async function toggleMedia(item: HomeMediaRecord) {
-    try {
-      const next = { ...item, active: !item.active, updatedAt: new Date().toISOString() };
-      await saveHomeMediaRecord(next);
-      setMedia((items) => items.map((entry) => entry.id === item.id ? next : entry));
-      setNotice(next.active ? "Homepage media published." : "Homepage media hidden.");
-    } catch {
-      setNotice("Homepage media visibility could not be changed.");
-    }
-  }
-
-  async function removeMedia(item: HomeMediaRecord) {
-    if (!window.confirm("Remove this homepage media?")) return;
-    try {
-      if (item.storagePath) {
-        try { await deleteObject(ref(storage, item.storagePath)); } catch { /* file may already be gone */ }
-      }
-      await deleteHomeMediaRecord(item.id);
-      setMedia((items) => items.filter((entry) => entry.id !== item.id));
-      setNotice("Homepage media removed.");
-    } catch {
-      setNotice("Homepage media could not be removed.");
-    }
-  }
-
-  return <AdminGate><main className="adminPage"><div className="adminShell">
-    <header className="adminHeader"><div><span className="kicker">Avram Kids · Content</span><h1>Public site content</h1><p>Everything here is live managed content. Firebase is the source of truth.</p></div></header>
-    {notice && <div className="adminToast" role="status" aria-live="polite">{notice}</div>}
-    <section className="adminContent twoColumn">
-      <div className="adminPanel">
-        <div className="panelHeading"><div><span className="kicker">Promotions</span><h2>Specials</h2></div><button className="button buttonPrimary" onClick={() => setSpecial({ id: crypto.randomUUID(), title: "", detail: "", active: true })}>+ Add special</button></div>
-        {specials.map((item) => <article className="specialList" key={item.id}><div><strong>{item.title}</strong><p>{item.detail}</p>{item.offer && <b>{item.offer}</b>}</div><div className="actions"><button className="button buttonLight" onClick={() => void toggleSpecial(item)}>{item.active ? "Hide" : "Publish"}</button><button className="button buttonLight" onClick={() => setSpecial({ ...item })}>Edit</button><button className="button buttonLight" onClick={() => void removeSpecial(item.id)}>Delete</button></div></article>)}
-        {special && <form className="adminForm" onSubmit={(event) => { event.preventDefault(); void saveSpecial(); }}><label>Title<input value={special.title} onChange={(event) => setSpecial({ ...special, title: event.target.value })} required /></label><label>Description<textarea value={special.detail} onChange={(event) => setSpecial({ ...special, detail: event.target.value })} required /></label><label>Offer wording<input value={special.offer ?? ""} onChange={(event) => setSpecial({ ...special, offer: event.target.value })} /></label><label><input type="checkbox" checked={special.active} onChange={(event) => setSpecial({ ...special, active: event.target.checked })} /> Published</label><div className="actions"><button className="button buttonPrimary">Save</button><button type="button" className="button buttonLight" onClick={() => setSpecial(null)}>Cancel</button></div></form>}
-      </div>
-      <div className="adminPanel">
-        <div className="panelHeading"><div><span className="kicker">Homepage</span><h2>Images & videos</h2></div><button className="button buttonPrimary" onClick={() => setMediaDraft({ id: crypto.randomUUID(), type: "image", storagePath: "", publicUrl: "", title: "", caption: "", active: true, order: media.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })}>+ Add media</button></div>
-        {media.map((item) => <article className="specialList" key={item.id}><div>{item.publicUrl && (item.type === "video" ? <video src={item.publicUrl} controls style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 10 }} /> : <img src={item.publicUrl} alt="" style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 10 }} />)}<strong>{item.title}</strong><p>{item.caption}</p></div><div className="actions"><button className="button buttonLight" onClick={() => void toggleMedia(item)}>{item.active ? "Hide" : "Publish"}</button><button className="button buttonLight" onClick={() => setMediaDraft({ ...item })}>Edit</button><button className="button buttonLight" onClick={() => void removeMedia(item)}>Delete</button></div></article>)}
-        {mediaDraft && <form className="adminForm" onSubmit={(event) => { event.preventDefault(); void saveMedia(); }}><label>Title<input value={mediaDraft.title} onChange={(event) => setMediaDraft({ ...mediaDraft, title: event.target.value })} required /></label><label>Caption<input value={mediaDraft.caption} onChange={(event) => setMediaDraft({ ...mediaDraft, caption: event.target.value })} /></label><label>File<input type="file" accept="image/*,video/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required={!mediaDraft.publicUrl} /></label><label>Order<input type="number" min="0" value={mediaDraft.order} onChange={(event) => setMediaDraft({ ...mediaDraft, order: Number(event.target.value) })} /></label><label><input type="checkbox" checked={mediaDraft.active} onChange={(event) => setMediaDraft({ ...mediaDraft, active: event.target.checked })} /> Published</label><div className="actions"><button className="button buttonPrimary">Save media</button><button type="button" className="button buttonLight" onClick={() => { setMediaDraft(null); setFile(null); }}>Cancel</button></div></form>}
-      </div>
-    </section>
-  </div></main></AdminGate>;
+  return <AdminGate><main className="adminPage"><div className="adminShell"><header className="adminHeader"><div><span className="kicker">Avram Kids · Content</span><h1>Public site content</h1><p>Everything here is live managed content. Firebase is the source of truth.</p></div><div className="adminHeaderActions"><Link href="/admin" className="button buttonLight">Operations</Link><Link href="/admin/finance" className="button buttonPrimary">Finance</Link></div></header>{notice && <div className="adminToast" role="status" aria-live="polite">{notice}</div>}<section className="adminContent twoColumn">
+    <div className="adminPanel"><div className="panelHeading"><div><span className="kicker">Promotions</span><h2>Specials</h2></div><button className="button buttonPrimary" onClick={() => setSpecial({ id: crypto.randomUUID(), title: "", detail: "", active: true })}>+ Add special</button></div>{specials.map((item) => <article className="specialList" key={item.id}><div><strong>{item.title}</strong><p>{item.detail}</p>{item.offer && <b>{item.offer}</b>}</div><div className="actions"><button className="button buttonLight" onClick={() => void toggleSpecial(item)}>{item.active ? "Hide" : "Publish"}</button><button className="button buttonLight" onClick={() => setSpecial({ ...item })}>Edit</button><button className="button buttonLight" onClick={() => void removeSpecial(item.id)}>Delete</button></div></article>)}{special && <form className="adminForm" onSubmit={(event) => { event.preventDefault(); void saveSpecial(); }}><label>Title<input value={special.title} onChange={(event) => setSpecial({ ...special, title: event.target.value })} required /></label><label>Description<textarea value={special.detail} onChange={(event) => setSpecial({ ...special, detail: event.target.value })} required /></label><label>Offer wording<input value={special.offer ?? ""} onChange={(event) => setSpecial({ ...special, offer: event.target.value })} /></label><label>Start date<input type="date" value={special.startDate ?? ""} onChange={(event) => setSpecial({ ...special, startDate: event.target.value || undefined })} /></label><label>End date<input type="date" value={special.endDate ?? ""} onChange={(event) => setSpecial({ ...special, endDate: event.target.value || undefined })} /></label><label><input type="checkbox" checked={special.active} onChange={(event) => setSpecial({ ...special, active: event.target.checked })} /> Published</label><div className="actions"><button className="button buttonPrimary">Save</button><button type="button" className="button buttonLight" onClick={() => setSpecial(null)}>Cancel</button></div></form>}</div>
+    <div className="adminPanel"><div className="panelHeading"><div><span className="kicker">Homepage</span><h2>Images & videos</h2></div><button className="button buttonPrimary" onClick={() => setMediaDraft({ id: crypto.randomUUID(), type: "image", storagePath: "", publicUrl: "", title: "", caption: "", active: true, order: media.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })}>+ Add media</button></div>{media.map((item) => <article className="specialList" key={item.id}><div>{item.publicUrl && (item.type === "video" ? <video src={item.publicUrl} controls style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 10 }} /> : <img src={item.publicUrl} alt="" style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 10 }} />)}<strong>{item.title}</strong><p>{item.caption}</p></div><div className="actions"><button className="button buttonLight" onClick={() => void toggleMedia(item)}>{item.active ? "Hide" : "Publish"}</button><button className="button buttonLight" onClick={() => setMediaDraft({ ...item })}>Edit</button><button className="button buttonLight" onClick={() => void removeMedia(item)}>Delete</button></div></article>)}{mediaDraft && <form className="adminForm" onSubmit={(event) => { event.preventDefault(); void saveMedia(); }}><label>Title<input value={mediaDraft.title} onChange={(event) => setMediaDraft({ ...mediaDraft, title: event.target.value })} required /></label><label>Caption<input value={mediaDraft.caption} onChange={(event) => setMediaDraft({ ...mediaDraft, caption: event.target.value })} /></label><label>File<input type="file" accept="image/*,video/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required={!mediaDraft.publicUrl} /></label><label>Order<input type="number" min="0" value={mediaDraft.order} onChange={(event) => setMediaDraft({ ...mediaDraft, order: Number(event.target.value) })} /></label><label><input type="checkbox" checked={mediaDraft.active} onChange={(event) => setMediaDraft({ ...mediaDraft, active: event.target.checked })} /> Published</label><div className="actions"><button className="button buttonPrimary">Save media</button><button type="button" className="button buttonLight" onClick={() => { setMediaDraft(null); setFile(null); }}>Cancel</button></div></form>}</div>
+  </section></div></main></AdminGate>;
 }
