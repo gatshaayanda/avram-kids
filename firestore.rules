@@ -20,14 +20,11 @@ service cloud.firestore {
       && request.resource.data.date is string
       && request.resource.data.location is string
       && request.resource.data.equipment is string
-      && request.resource.data.quantity is int
       && request.resource.data.quantity > 0
       && request.resource.data.eventType is string
       && request.resource.data.status == 'New';
     }
 
-    // Public catalogue. Customers can read published content, but only an
-    // authenticated Avram admin can create, edit or remove it.
     match /equipment/{equipmentId} {
       allow read: if resource.data.active == true || isAdmin();
       allow create, update, delete: if isAdmin();
@@ -40,13 +37,13 @@ service cloud.firestore {
 
     // Public booking intake. Customers can create a new request with only the
     // allowed lead fields. Reading and changing requests is private.
+    // Numeric form fields intentionally accept either Firestore integer or
+    // double representation because browsers submit JavaScript numbers.
     match /bookingRequests/{requestId} {
       allow create: if validBookingRequest();
       allow read, update, delete: if isAdmin();
     }
 
-    // Role documents are provisioned out-of-band. A client may not grant
-    // itself admin access.
     match /admins/{userId} {
       allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
       allow write: if false;
