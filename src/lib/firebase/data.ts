@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { EquipmentItem } from "@/lib/equipment";
 
@@ -16,11 +16,11 @@ export async function saveEquipmentRecord(item: EquipmentItem) { await setDoc(do
 export async function deleteEquipmentRecord(id: string) { await deleteDoc(doc(db, "equipment", id)); }
 export async function seedEquipmentRecords(items: EquipmentItem[]) { for (const item of items) await saveEquipmentRecord(item); }
 
-export async function getSpecials(): Promise<SpecialRecord[]> { const snapshot = await getDocs(specialCollection); return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<SpecialRecord, "id">) })); }
+export async function getSpecials(publicOnly = false): Promise<SpecialRecord[]> { const snapshot = await getDocs(publicOnly ? query(specialCollection, where("active", "==", true)) : specialCollection); return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<SpecialRecord, "id">) })); }
 export async function saveSpecialRecord(item: SpecialRecord) { await setDoc(doc(db, "specials", item.id), item); }
 export async function deleteSpecialRecord(id: string) { await deleteDoc(doc(db, "specials", id)); }
 
-export async function getHomeMedia(): Promise<HomeMediaRecord[]> { const snapshot = await getDocs(mediaCollection); return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<HomeMediaRecord, "id">) })).sort((a, b) => a.order - b.order); }
+export async function getHomeMedia(publicOnly = false): Promise<HomeMediaRecord[]> { const snapshot = await getDocs(publicOnly ? query(mediaCollection, where("active", "==", true)) : mediaCollection); return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<HomeMediaRecord, "id">) })).sort((a, b) => a.order - b.order); }
 export async function saveHomeMediaRecord(item: HomeMediaRecord) { await setDoc(doc(db, "homeMedia", item.id), item); }
 export async function deleteHomeMediaRecord(id: string) { await deleteDoc(doc(db, "homeMedia", id)); }
 
