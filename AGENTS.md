@@ -23,7 +23,7 @@ Before each checkpoint report current branch, commit, status, verified functiona
 - Next.js App Router, Firebase Authentication, Firestore and Firebase Storage only for application persistence.
 - Do not introduce Supabase, a third-party CMS, fake payments, fake WhatsApp/email delivery, or another database.
 - Preserve the existing PWA, Analytics, Speed Insights, TypeScript and Firebase foundations.
-- Never modify Translend, AdminHub, PurePress or another repository while working on Avram.
+- Never modify another project/repository while working on Avram.
 - Never commit secrets or `.env.local`.
 - Browser localStorage may be a recovery/cache mechanism only; it is not the shared production source of truth.
 - Public pages consume managed Firebase content rather than duplicated hard-coded catalogue/marketing records.
@@ -57,7 +57,7 @@ Seeded equipment remains the recovery baseline but must not be the only way to e
 
 Never fabricate availability, testimonials, promotions, packages or guarantees.
 
-Historical bookings must retain enough equipment snapshot information to remain understandable if catalogue records later change or are deleted.
+Historical bookings must retain enough equipment snapshot information to remain understandable if catalogue prices or descriptions later change.
 
 ## Firebase security
 Firestore collections:
@@ -66,12 +66,13 @@ Firestore collections:
 - `homeMedia`
 - `bookingRequests`
 - `admins`
-- later operational collections such as `availability`, `customers`, `payments`, `invoices` and `loyalty` only when their data contracts are implemented.
+- `financeRecords`
+- later operational collections such as `availability`, `customers`, `loyalty`, `invoices` only when their data contracts are implemented.
 
 Security requirements:
 - public customers may create only validated booking-request fields;
 - customers cannot read/update/delete private booking requests;
-- customers cannot write equipment, specials, statuses, media or admin records;
+- customers cannot write equipment, specials, statuses, media, finance or admin records;
 - admin/staff access requires Firebase Authentication plus `admins/{uid}` with role `owner` or `staff`;
 - clients cannot grant themselves admin access;
 - Storage uploads/deletes require authorized admin/staff and validate file type/size;
@@ -110,21 +111,30 @@ Success messages must say what actually happened. Failure messages must not impl
 
 Media uploads require connectivity. Never fake an offline upload.
 
-## Financial operations — required next product layer
-Avram should have a simple financial section connected directly to bookings, not a full accounting/ERP system.
+## Financial operations — foundation now implemented
+Avram uses a simple booking-linked finance model, not a full accounting/ERP system.
 
-The financial model should support:
-- quoted rental amount;
-- approved special/loyalty discount;
+Implemented:
+- `financeRecords` Firestore collection;
+- admin-only security rule;
+- `/admin/finance` workspace;
+- quote/rental amount;
+- approved discount amount;
 - deposit required;
 - amount paid;
-- balance due;
+- calculated net due and balance;
 - payment status;
-- payment date/reference/method where recorded;
-- invoice status/reference when invoicing is introduced;
-- financial totals tied to the specific booking/customer.
+- payment method/reference;
+- invoice status;
+- booking selector so finance remains anchored to a real booking;
+- visible save/error feedback.
 
-The booking remains the operational anchor: financial records must reference the booking rather than becoming a separate disconnected ledger.
+Next finance work:
+- preserve finance snapshot when a booking becomes confirmed;
+- generate a real invoice document/PDF when the invoice contract is finalized;
+- record payment events rather than only the current total when transaction history is needed;
+- add owner-controlled due dates/reminders;
+- never add fake payment processing.
 
 Start simple. Do not build payroll, tax accounting, inventory accounting, fleet finance or a giant accounting suite.
 
@@ -133,28 +143,41 @@ Customer relationship structure begins during booking. A request should preserve
 
 Use normalized phone number as the primary practical matching key, with email as a secondary signal where available. Do not expose customer history publicly.
 
-The loyalty concept is an **owner-controlled repeat-customer offer**, not an automatic promise:
-- when the system identifies that a customer is making a second or later booking/request, admin can see that repeat-customer context;
-- admin decides whether to grant a repeat-customer discount, including the 10% example;
-- the discount is recorded against the relevant booking when approved;
-- the customer-facing announcement is managed through the same Specials/Promotions system used for normal offers;
-- the system must never automatically promise a discount unless an active offer/policy exists.
+Next customer work:
+- introduce a private `customers` collection keyed by a stable normalized contact identity;
+- link booking requests to the customer record without exposing private history to customers;
+- show admin repeat context such as `2nd request` or `returning customer`;
+- preserve historical bookings even if catalogue records change.
 
-This allows Avram to say, for example, “10% off your next booking” when the owner has deliberately enabled and announced that offer, while keeping the actual decision under owner control.
+## Loyalty and promotions
+The loyalty concept is an **owner-controlled repeat-customer offer**, not an automatic promise.
 
-## Specials and promotions
-Specials are managed Firebase records, not localStorage-only marketing copy.
+When the system identifies a second or later request, admin can see repeat-customer context. Admin decides whether to grant a discount, including the 10% example. The discount is recorded against the relevant booking/finance record when approved.
 
-A special should support at minimum:
-- title;
-- customer-facing description;
-- active/published state;
-- offer/price wording;
-- optional start/end window;
-- optional related equipment;
-- later, optional audience/repeat-customer eligibility.
+The customer-facing announcement is managed through the same Specials/Promotions system used for normal offers. The system must never automatically promise a discount unless an active offer/policy exists.
 
-Admin can create, edit, publish/hide and delete. Public pages show only published specials.
+Current Specials implementation is Firebase-backed and supports title, description, offer wording, active state and optional start/end dates. Both Operations and Content surfaces must use Firebase, never localStorage as the source of truth.
+
+## Media
+Current public media architecture:
+- Firebase Storage for files;
+- Firestore `homeMedia` metadata;
+- admin upload/replace/publish/hide/delete/reorder;
+- image/video type and 25 MB client-side validation;
+- visible admin toast/error feedback.
+
+Production verification still required: publish the current Storage rules and perform a real upload test for both equipment images and homepage media.
+
+## Availability and calendar — next major operational layer
+Build availability from confirmed bookings and actual equipment inventory.
+
+Required later:
+- equipment/date conflict detection;
+- quantity-aware inventory if multiple units exist;
+- event calendar/upcoming confirmed jobs;
+- clear operational states around preparation/setup/event/collection/completion.
+
+Do not label equipment available based only on whether the catalogue item is active.
 
 ## Automation and notifications
 Required later:
@@ -184,7 +207,7 @@ Vercel Web Analytics must actually be mounted in the root layout and enabled in 
 
 ## Scope discipline
 Do not add:
-- accounting/ERP complexity beyond the simple booking-linked finance layer above;
+- accounting/ERP complexity beyond the simple booking-linked finance layer;
 - payroll;
 - fleet management;
 - routing;
@@ -201,20 +224,36 @@ Before declaring a code checkpoint, run:
 
 Then verify the deployed browser flow relevant to the change. A Vercel READY deployment is evidence of a successful deployment/build, not proof that Firebase rules, Storage, authentication or application workflows are correct.
 
-## Current state / next controlled work
-The public booking path is now proven end-to-end: a customer submission creates a Firestore booking request and the owner dashboard can read it.
+## Current checkpoint — 17 September 2026
+### Proven live
+- Public Avram site is rendering Firebase-backed equipment.
+- Public booking submission is working against Firestore.
+- A real test request was created and appeared in Operations as `Request #IZCAGZKR`.
+- Operations can read requests, inspect details, contact the customer, and change request status.
+- Equipment catalogue CRUD and visibility are Firebase-backed.
+- Specials are now Firebase-backed in the content architecture; the old Operations localStorage implementation is being retired/isolated from the source of truth.
+- Homepage media has Firebase Storage + Firestore architecture and admin upload validation/toasts.
+- Booking-linked finance foundation is now in code at `/admin/finance`.
 
-The immediate remaining foundation work is:
-1. verify/publish both Firestore and Storage rules in the `avram-kids` Firebase project;
-2. verify equipment image upload and homepage media upload end-to-end;
-3. make every admin action consistently toast-confirmed;
-4. unify Specials so `/admin` never uses localStorage as its source of truth;
-5. connect `/admin/content` cleanly into the main Operations navigation;
-6. add real availability/conflict handling and calendar operations;
-7. add booking-linked finance/invoicing/payment status;
-8. add repeat-customer recognition and owner-controlled loyalty offers;
-9. add owner notification/automation integrations only when real delivery mechanisms are configured;
-10. complete PWA/offline verification and production QA.
+### Code pushed but not yet fully production-verified
+- Homepage/equipment media upload against the deployed Storage rules.
+- Finance record creation/update against deployed Firestore rules.
+- Full admin content flow on the deployed build.
+- CI/build quality gates after the latest checkpoint.
+
+### Immediate next controlled sequence
+1. Publish/deploy the current `firestore.rules` and `storage.rules` to Firebase project `avram-kids`.
+2. Test equipment image upload and homepage image/video upload live.
+3. Test `/admin/finance` against a real booking and verify quote → discount → deposit → paid → balance.
+4. Finish main `/admin` navigation so Finance and Public Content are first-class Operations sections.
+5. Remove any remaining localStorage-only Specials code after confirming no migration is needed.
+6. Add booking equipment/price snapshots so historical requests remain stable.
+7. Build conflict-aware availability/calendar from confirmed bookings.
+8. Add private customer records and repeat-customer recognition.
+9. Connect owner-controlled repeat-customer loyalty offers to Specials + booking finance.
+10. Add invoice generation and payment-event history after the finance contract is stable.
+11. Add real owner/customer notification integrations only when actual delivery providers are configured.
+12. Complete PWA/offline verification, analytics verification and production QA.
 
 ## Recovery rule
 If a deployed result differs from the repository contract, do not patch blindly. Inspect the live behavior, Firebase deployment state, branch and commit first.
