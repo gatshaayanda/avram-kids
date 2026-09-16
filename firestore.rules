@@ -1,53 +1,117 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
+
+    // ─────────────────────────────────────────────
+    // Admin authorization
+    // ─────────────────────────────────────────────
+
+    function isSignedIn() {
       return request.auth != null;
     }
 
     function isAdmin() {
-      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role
+          in ['owner', 'staff'];
     }
 
-    function validBookingRequest() {
-      return request.resource.data.keys().hasOnly([
-        'createdAt', 'name', 'phone', 'email', 'date', 'startTime',
-        'location', 'equipment', 'quantity', 'guests', 'eventType', 'notes',
-        'status'
-      ])
-      && request.resource.data.name is string
-      && request.resource.data.phone is string
-      && request.resource.data.date is string
-      && request.resource.data.location is string
-      && request.resource.data.equipment is string
-      && request.resource.data.quantity > 0
-      && request.resource.data.eventType is string
-      && request.resource.data.status == 'New';
+    function isOwner() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role
+          == 'owner';
     }
+
+    // ─────────────────────────────────────────────
+    // Admin accounts
+    // ─────────────────────────────────────────────
+
+    match /admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update, delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Equipment catalogue
+    // ─────────────────────────────────────────────
 
     match /equipment/{equipmentId} {
-      allow read: if resource.data.active == true || isAdmin();
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
+
+    // ─────────────────────────────────────────────
+    // Specials / promotions
+    // ─────────────────────────────────────────────
 
     match /specials/{specialId} {
       allow read: if resource.data.active == true || isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
-    // Public booking intake. Customers can create a new request with only the
-    // allowed lead fields. Reading and changing requests is private.
-    // Numeric form fields intentionally accept either Firestore integer or
-    // double representation because browsers submit JavaScript numbers.
+    // ─────────────────────────────────────────────
+    // Booking requests
+    // ─────────────────────────────────────────────
+
     match /bookingRequests/{requestId} {
-      allow create: if validBookingRequest();
+      // The current public booking form writes these exact fields.
+      // Public users may create requests only; private records remain
+      // readable and editable by authenticated Avram Operations users.
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'createdAt', 'name', 'phone', 'email', 'date', 'startTime',
+          'location', 'equipment', 'quantity', 'guests', 'eventType',
+          'notes', 'status'
+        ])
+        && request.resource.data.keys().hasAll([
+          'createdAt', 'name', 'phone', 'email', 'date', 'startTime',
+          'location', 'equipment', 'quantity', 'guests', 'eventType',
+          'notes', 'status'
+        ])
+        && request.resource.data.createdAt is string
+        && request.resource.data.name is string
+        && request.resource.data.phone is string
+        && request.resource.data.email is string
+        && request.resource.data.date is string
+        && request.resource.data.startTime is string
+        && request.resource.data.location is string
+        && request.resource.data.equipment is string
+        && request.resource.data.quantity > 0
+        && request.resource.data.guests >= 0
+        && request.resource.data.eventType is string
+        && request.resource.data.notes is string
+        && request.resource.data.status == 'New';
+
       allow read, update, delete: if isAdmin();
     }
 
-    match /admins/{userId} {
-      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
-      allow write: if false;
+    // ─────────────────────────────────────────────
+    // Homepage media
+    // ─────────────────────────────────────────────
+
+    match /homeMedia/{mediaId} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow create, update, delete: if isAdmin();
     }
+
+    // ─────────────────────────────────────────────
+    // Future operational collections
+    // ─────────────────────────────────────────────
+
+    match /jobs/{jobId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /availability/{availabilityId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────
+    // Default deny
+    // ─────────────────────────────────────────────
 
     match /{document=**} {
       allow read, write: if false;
