@@ -3,20 +3,26 @@ service firebase.storage {
   match /b/{bucket}/o {
     function isAdmin() {
       return request.auth != null
-        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.role in ['owner', 'staff'];
     }
 
-    // Public equipment images are readable by customers. Only provisioned
-    // Avram admins may upload, replace or delete them.
     match /equipment/{equipmentId}/{fileName} {
       allow read: if true;
-      allow write: if isAdmin()
+      allow create, update: if isAdmin()
         && request.resource.size < 8 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
     }
 
-    match /{allPaths=**} {
-      allow read, write: if false;
+    match /homepage-media/{mediaId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.size < 25 * 1024 * 1024
+        && request.resource.contentType.matches('(image|video)/.*');
+      allow delete: if isAdmin();
     }
+
+    match /{allPaths=**} { allow read, write: if false; }
   }
 }
