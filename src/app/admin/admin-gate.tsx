@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -53,9 +54,34 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function handleSignOut() {
+    setBusy(true);
+    try {
+      await signOut(auth);
+      setAuthorized(false);
+      setUser(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (checking) return <main className="adminPage"><div className="adminShell"><div className="emptyState"><div>🔐</div><h1>Opening Operations</h1><p>Checking access…</p></div></div></main>;
 
-  if (user && authorized) return <>{children}</>;
+  if (user && authorized) {
+    return <>
+      <div className="adminUtilityBar">
+        <div><strong>Avram Operations</strong><span>{user.email}</span></div>
+        <nav aria-label="Operations tools">
+          <Link href="/admin">Operations</Link>
+          <Link href="/admin/content">Public content</Link>
+          <Link href="/admin/finance">Finance</Link>
+          <Link href="/">Public site</Link>
+          <button type="button" onClick={() => void handleSignOut()} disabled={busy}>{busy ? "Signing out…" : "Sign out"}</button>
+        </nav>
+      </div>
+      {children}
+    </>;
+  }
 
   return <main className="adminPage"><div className="adminShell"><section className="adminPanel" style={{ maxWidth: 520, margin: "80px auto" }}><span className="kicker">Avram Kids · Operations</span><h1>Sign in to Operations</h1><p>Use the Avram Operations account to manage equipment, prices, images, specials and booking requests.</p><form className="adminForm" onSubmit={signIn}><label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>{error && <p role="alert">{error}</p>}<button className="button buttonPrimary" type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button></form></section></div></main>;
 }
