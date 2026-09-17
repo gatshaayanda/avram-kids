@@ -95,7 +95,10 @@ The owner needs:
 - filters for attention/upcoming work;
 - event date/time/location/equipment/quantity/guest count/customer details;
 - direct contact actions;
-- status changes with visible success/failure feedback.
+- status changes with visible success/failure feedback;
+- an always-available sign-out control after authentication.
+
+The protected Operations, Public Content and Finance surfaces are all behind the same Firebase Auth + `admins/{uid}` role gate. The `/admin` route tree is marked `noindex`/`nofollow`.
 
 Next operational layer:
 - real equipment availability/conflict checks;
@@ -156,7 +159,7 @@ When the system identifies a second or later request, admin can see repeat-custo
 
 The customer-facing announcement is managed through the same Specials/Promotions system used for normal offers. The system must never automatically promise a discount unless an active offer/policy exists.
 
-Current Specials implementation is Firebase-backed and supports title, description, offer wording, active state and optional start/end dates. Both Operations and Content surfaces must use Firebase, never localStorage as the source of truth.
+Current Specials implementation is Firebase-backed in the content architecture and supports title, description, offer wording, active state and optional start/end dates. The legacy Operations localStorage Specials path is still present in the current `/admin` file and must be removed before Specials can be considered fully migrated. `/admin/content` is the authoritative Firebase content surface.
 
 ## Media
 Current public media architecture:
@@ -231,29 +234,35 @@ Then verify the deployed browser flow relevant to the change. A Vercel READY dep
 - A real test request was created and appeared in Operations as `Request #IZCAGZKR`.
 - Operations can read requests, inspect details, contact the customer, and change request status.
 - Equipment catalogue CRUD and visibility are Firebase-backed.
-- Specials are now Firebase-backed in the content architecture; the old Operations localStorage implementation is being retired/isolated from the source of truth.
 - Homepage media has Firebase Storage + Firestore architecture and admin upload validation/toasts.
 - Booking-linked finance foundation is now in code at `/admin/finance`.
+
+### Implemented in the current protected admin tree
+- Shared Firebase Auth + `admins/{uid}` owner/staff gate.
+- Shared sign-out control available after successful admin authentication.
+- Protected admin navigation to Operations, Public Content, Finance and the public site.
+- `/admin` route metadata sets `noindex`/`nofollow` for the protected Operations surface.
+- Firebase-backed Public Content workspace exists at `/admin/content` for Specials and homepage media.
 
 ### Code pushed but not yet fully production-verified
 - Homepage/equipment media upload against the deployed Storage rules.
 - Finance record creation/update against deployed Firestore rules.
 - Full admin content flow on the deployed build.
 - CI/build quality gates after the latest checkpoint.
+- Shared protected navigation/sign-out and `noindex` behavior on the deployed build.
 
 ### Immediate next controlled sequence
 1. Publish/deploy the current `firestore.rules` and `storage.rules` to Firebase project `avram-kids`.
 2. Test equipment image upload and homepage image/video upload live.
 3. Test `/admin/finance` against a real booking and verify quote → discount → deposit → paid → balance.
-4. Finish main `/admin` navigation so Finance and Public Content are first-class Operations sections.
-5. Remove any remaining localStorage-only Specials code after confirming no migration is needed.
-6. Add booking equipment/price snapshots so historical requests remain stable.
-7. Build conflict-aware availability/calendar from confirmed bookings.
-8. Add private customer records and repeat-customer recognition.
-9. Connect owner-controlled repeat-customer loyalty offers to Specials + booking finance.
-10. Add invoice generation and payment-event history after the finance contract is stable.
-11. Add real owner/customer notification integrations only when actual delivery providers are configured.
-12. Complete PWA/offline verification, analytics verification and production QA.
+4. Remove the remaining localStorage-only Specials implementation from the main `/admin` surface and route Specials management through Firebase `/admin/content`.
+5. Add booking equipment/price snapshots so historical requests remain stable.
+6. Build conflict-aware availability/calendar from confirmed bookings.
+7. Add private customer records and repeat-customer recognition.
+8. Connect owner-controlled repeat-customer loyalty offers to Specials + booking finance.
+9. Add invoice generation and payment-event history after the finance contract is stable.
+10. Add real owner/customer notification integrations only when actual delivery providers are configured.
+11. Complete PWA/offline verification, analytics verification and production QA.
 
 ## Recovery rule
 If a deployed result differs from the repository contract, do not patch blindly. Inspect the live behavior, Firebase deployment state, branch and commit first.
